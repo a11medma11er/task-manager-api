@@ -12,7 +12,7 @@ class AuthentController extends Controller
 {
     public function test()
     {
-        return response()->json(['message' => 'API is working']);
+        return response()->json(['message' => 'API is working good!']);
     }
 
     public function register(Request $request)
