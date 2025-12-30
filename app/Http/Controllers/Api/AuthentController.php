@@ -29,6 +29,9 @@ class AuthentController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        // إعطاء المستخدم الجديد دور user افتراضياً
+        $user->assignRole('user');
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

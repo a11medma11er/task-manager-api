@@ -17,3 +17,10 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Ignore test tokens and temporary files
+token.txt
+*.log
+
+# Ignore storage logs
+/storage/logs/*.log
