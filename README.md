@@ -10,7 +10,10 @@ A professional RESTful API built with Laravel for managing tasks with user authe
 - 🔒 **Permission System** - Fine-grained access control using Spatie Laravel Permission
 - 📝 **Task Attributes** - Title, description, status, and due date tracking
 - 🛡️ **Security** - Token-based authentication and authorization middleware
-- 📊 **Pagination** - Efficient data retrieval with paginated responses
+- 📊 **Enhanced Pagination** - Structured pagination with metadata and navigation links
+- ✨ **API Resources** - Consistent, structured JSON responses
+- 🔍 **Advanced Validation** - Form Request classes with custom error messages
+- 📈 **Smart Task Tracking** - Automatic overdue detection and days remaining calculation
 
 ## Tech Stack
 
@@ -111,11 +114,15 @@ Content-Type: application/json
 **Response:**
 ```json
 {
+  "success": true,
+  "message": "User registered successfully",
   "token": "1|AbCdEf...",
   "user": {
     "id": 1,
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "created_at": "2025-12-30 10:00:00",
+    "updated_at": "2025-12-30 10:00:00"
   }
 }
 ```
@@ -134,11 +141,15 @@ Content-Type: application/json
 **Response:**
 ```json
 {
+  "success": true,
+  "message": "Login successful",
   "token": "2|GhIjKl...",
   "user": {
     "id": 1,
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "created_at": "2025-12-30 10:00:00",
+    "updated_at": "2025-12-30 10:00:00"
   }
 }
 ```
@@ -152,6 +163,7 @@ Authorization: Bearer {token}
 **Response:**
 ```json
 {
+  "success": true,
   "message": "Logged out successfully"
 }
 ```
@@ -170,22 +182,32 @@ GET /api/tasks
 
 **Response:**
 ```json
-{
-  "current_page": 1,
-  "data": [
+{data": [
     {
       "id": 1,
-      "user_id": 1,
       "title": "Complete project",
       "description": "Finish the API development",
       "status": "pending",
       "due_date": "2025-12-31",
-      "created_at": "2025-12-30T10:00:00.000000Z",
-      "updated_at": "2025-12-30T10:00:00.000000Z"
+      "is_overdue": false,
+      "days_remaining": 1,
+      "created_at": "2025-12-30 10:00:00",
+      "updated_at": "2025-12-30 10:00:00"
     }
   ],
-  "per_page": 10,
-  "total": 1
+  "meta": {
+    "total": 1,
+    "count": 1,
+    "per_page": 10,
+    "current_page": 1,
+    "total_pages": 1
+  },
+  "links": {
+    "first": "http://127.0.0.1:8000/api/tasks?page=1",
+    "last": "http://127.0.0.1:8000/api/tasks?page=1",
+    "prev": null,
+    "next": null
+  }
 }
 ```
 
@@ -205,20 +227,40 @@ Content-Type: application/json
 **Response:**
 ```json
 {
-  "id": 1,
-  "user_id": 1,
-  "title": "New Task",
-  "description": "Task description",
-  "status": "pending",
-  "due_date": "2025-12-31",
-  "created_at": "2025-12-30T10:00:00.000000Z",
-  "updated_at": "2025-12-30T10:00:00.000000Z"
+  "data": {
+    "id": 1,
+    "title": "New Task",
+    "description": "Task description",
+    "status": "pending",
+    "due_date": "2025-12-31",
+    "is_overdue": false,
+    "days_remaining": 1,
+    "created_at": "2025-12-30 10:00:00",
+    "updated_at": "2025-12-30 10:00:00"
+  }
 }
 ```
 
 #### Get a Single Task
 ```http
 GET /api/tasks/{id}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "id": 1,
+    "title": "Complete project",
+    "description": "Finish the API development",
+    "status": "pending",
+    "due_date": "2025-12-31",
+    "is_overdue": false,
+    "days_remaining": 1,
+    "created_at": "2025-12-30 10:00:00",
+    "updated_at": "2025-12-30 10:00:00"
+  }
+}
 ```
 
 #### Update a Task
@@ -232,6 +274,23 @@ Content-Type: application/json
 }
 ```
 
+**Response:**
+```json
+{
+  "data": {
+    "id": 1,
+    "title": "Updated Title",
+    "description": "Task description",
+    "status": "in_progress",
+    "due_date": "2025-12-31",
+    "is_overdue": false,
+    "days_remaining": 1,
+    "created_at": "2025-12-30 10:00:00",
+    "updated_at": "2025-12-30 11:30:00"
+  }
+}
+```
+
 #### Delete a Task
 ```http
 DELETE /api/tasks/{id}
@@ -240,7 +299,8 @@ DELETE /api/tasks/{id}
 **Response:**
 ```json
 {
-  "message": "Task deleted"
+  "success": true,
+  "message": "Task deleted successfully"
 }
 ```
 
@@ -275,18 +335,88 @@ $user->assignRole('admin');
 
 ### Registration
 - `name` - required, string, max 255 characters
-- `email` - required, valid email, unique
-- `password` - required, min 6 characters, confirmed
+- `email` - required, valid email, unique in users table
+- `password` - required, min 8 characters, confirmed
 
 ### Login
-- `email` - required, valid email
-- `password` - required
+- `email` - required, valid email format
+- `password` - required, string
 
-### Task Creation/Update
-- `title` - required on create, max 255 characters
-- `description` - optional, string
-- `status` - optional, one of: `pending`, `in_progress`, `completed`
-- `due_date` - optional, valid date, must be today or later
+### Task Creation
+- `title` - required, string, max 255 characters
+- `description` - optional, string, max 1000 characters
+- `status` - optional, enum: `pending`, `in_progress`, `completed`
+- `due_date` - optional, date format, must be today or later
+
+### Task Update
+- `title` - optional, string, max 255 characters
+- `description` - optional, string, max 1000 characters
+- `status` - optional, enum: `pending`, `in_progress`, `completed`
+- `due_date` - optional, date format, must be today or later
+
+### Custom Validation Messages
+All validation errors return helpful messages in Arabic:
+- Required field: "حقل {field} مطلوب" (Field {field} is required)
+- Max length: "حقل {field} يجب ألا يتجاوز {max} حرف" (Field {field} must not exceed {max} characters)
+- Invalid status: "حالة المهمة يجب أن تكون: pending أو in_progress أو completed"
+- Date validation: "يجب أن يكون تاريخ الاستحقاق اليوم أو في المستقبل"
+
+## API Resources
+
+### UserResource
+Transforms user data with the following structure:
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "roles": ["user"],
+  "permissions": ["view tasks", "create tasks", "edit tasks", "delete tasks"],
+  "created_at": "2025-12-30 10:00:00",
+  "updated_at": "2025-12-30 10:00:00"
+}
+```
+
+### TaskResource
+Transforms task data with computed fields:
+```json
+{
+  "id": 1,
+  "title": "Complete project",
+  "description": "Finish the API development",
+  "status": "pending",
+  "due_date": "2025-12-31",
+  "is_overdue": false,
+  "days_remaining": 1,
+  "created_at": "2025-12-30 10:00:00",
+  "updated_at": "2025-12-30 10:00:00"
+}
+```
+
+**Computed Fields:**
+- `is_overdue` - Boolean indicating if task is overdue
+- `days_remaining` - Integer showing days until due date (negative if overdue)
+
+### TaskCollection
+Transforms paginated task lists with meta and links:
+```json
+{
+  "data": [...],
+  "meta": {
+    "total": 100,
+    "count": 10,
+    "per_page": 10,
+    "current_page": 1,
+    "total_pages": 10
+  },
+  "links": {
+    "first": "http://127.0.0.1:8000/api/tasks?page=1",
+    "last": "http://127.0.0.1:8000/api/tasks?page=10",
+    "prev": null,
+    "next": "http://127.0.0.1:8000/api/tasks?page=2"
+  }
+}
+```
 
 ## Error Handling
 
@@ -303,25 +433,42 @@ The API returns appropriate HTTP status codes:
 ## Testing with PowerShell
 
 ```powershell
-# Register
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/auth/register" `
+# Register a new user
+$registerResponse = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/auth/register" `
   -Method Post -ContentType "application/json" `
   -Body '{"name":"Test User","email":"test@example.com","password":"password123","password_confirmation":"password123"}'
+Write-Host "User registered: $($registerResponse.data.name)"
 
 # Login and save token
-$response = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/auth/login" `
+$loginResponse = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/auth/login" `
   -Method Post -ContentType "application/json" `
   -Body '{"email":"test@example.com","password":"password123"}'
-$token = $response.token
+$token = $loginResponse.data.token
+Write-Host "Token: $token"
 
-# Get tasks
+# Get all tasks (paginated)
 $headers = @{ "Authorization" = "Bearer $token"; "Accept" = "application/json" }
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks" -Method Get -Headers $headers
+$tasksResponse = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks" -Method Get -Headers $headers
+Write-Host "Total tasks: $($tasksResponse.meta.total)"
 
-# Create task
+# Create a new task
 $headers = @{ "Authorization" = "Bearer $token"; "Content-Type" = "application/json" }
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks" -Method Post -Headers $headers `
-  -Body '{"title":"My Task","description":"Description","status":"pending","due_date":"2025-12-31"}'
+$newTask = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks" -Method Post -Headers $headers `
+  -Body '{"title":"My Task","description":"Complete API testing","status":"pending","due_date":"2025-12-31"}'
+Write-Host "Task created with ID: $($newTask.data.id)"
+Write-Host "Days remaining: $($newTask.data.days_remaining)"
+
+# Update the task
+$taskId = $newTask.data.id
+$updatedTask = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks/$taskId" `
+  -Method Put -Headers $headers `
+  -Body '{"status":"in_progress"}'
+Write-Host "Task updated: $($updatedTask.data.status)"
+
+# Delete the task
+$deleteResponse = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/tasks/$taskId" `
+  -Method Delete -Headers $headers
+Write-Host $deleteResponse.message
 ```
 
 ## Database Schema
@@ -360,6 +507,15 @@ task-manager-api/
 │   │   │   └── Api/
 │   │   │       ├── AuthentController.php
 │   │   │       └── TaskController.php
+│   │   ├── Requests/
+│   │   │   ├── RegisterRequest.php
+│   │   │   ├── LoginRequest.php
+│   │   │   ├── StoreTaskRequest.php
+│   │   │   └── UpdateTaskRequest.php
+│   │   ├── Resources/
+│   │   │   ├── UserResource.php
+│   │   │   ├── TaskResource.php
+│   │   │   └── TaskCollection.php
 │   │   └── Kernel.php
 │   └── Models/
 │       ├── User.php
@@ -374,7 +530,8 @@ task-manager-api/
 ├── routes/
 │   └── api.php
 └── config/
-    └── permission.php
+    ├── permission.php
+    └── sanctum.php
 ```
 
 ## Security Considerations
@@ -404,7 +561,7 @@ For issues and questions, please open an issue on GitHub.
 
 ## Author
 
-Developed with ❤️ using Laravel
+Developed with Ahmed Maher ❤️ using Laravel
 
 ---
 
