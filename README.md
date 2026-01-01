@@ -182,7 +182,7 @@ GET /api/tasks
 
 **Response:**
 ```json
-{data": [
+{"data": [
     {
       "id": 1,
       "title": "Complete project",

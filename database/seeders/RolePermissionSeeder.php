@@ -24,15 +24,15 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // إنشاء دور Admin وإعطائه كل الصلاحيات
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(Permission::all());
 
         // إنشاء دور User وإعطائه صلاحيات المهام فقط
-        $userRole = Role::create(['name' => 'user']);
-        $userRole->givePermissionTo(['view tasks', 'create tasks', 'edit tasks', 'delete tasks']);
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+        $userRole->syncPermissions(['view tasks', 'create tasks', 'edit tasks', 'delete tasks']);
     }
 }

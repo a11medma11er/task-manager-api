@@ -29,6 +29,9 @@ class AuthentController extends Controller
         // إعطاء المستخدم الجديد دور user افتراضياً
         $user->assignRole('user');
 
+        // تحديث المستخدم مع تحميل الأدوار والصلاحيات
+        $user = $user->fresh(['roles', 'permissions']);
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -48,6 +51,9 @@ class AuthentController extends Controller
                 'email' => ['Invalid credentials.'],
             ]);
         }
+
+        // تحديث المستخدم مع تحميل الأدوار والصلاحيات
+        $user = $user->fresh(['roles', 'permissions']);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
